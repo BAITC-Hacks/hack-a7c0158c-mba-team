@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { scoreTask } from "@/features/tasks/scoring";
+import { READINESS_LABELS, scoreTask } from "@/features/tasks/scoring";
 import type { BusinessTask, TaskFields } from "@/features/tasks/types";
-import { STORAGE_KEYS } from "@/lib/storage";
+import { saveTask } from "@/lib/storage";
 
 type QuestionField = Exclude<keyof TaskFields, "title" | "industry">;
 type ClarificationQuestion = { field: QuestionField; text: string };
@@ -140,10 +140,6 @@ export default function NewBusinessTaskPage() {
     setError("");
 
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.tasks);
-      const existing: unknown = saved ? JSON.parse(saved) : [];
-      if (!Array.isArray(existing)) throw new Error("В хранилище задач некорректный формат.");
-
       const readiness = scoreTask(card);
       const task: BusinessTask = {
         ...card,
@@ -153,7 +149,7 @@ export default function NewBusinessTaskPage() {
         status: "published",
         confirmedAt: new Date().toISOString(),
       };
-      localStorage.setItem(STORAGE_KEYS.tasks, JSON.stringify([task, ...existing]));
+      saveTask(task);
       setPublishedTask(task);
       setStep("published");
     } catch (cause) {
@@ -171,6 +167,9 @@ export default function NewBusinessTaskPage() {
     setPublishedTask(null);
     setError("");
   }
+
+  const preview = scoreTask(card);
+  const nextLevel = preview.score < 40 ? 40 : preview.score < 70 ? 70 : preview.score < 90 ? 90 : null;
 
   return (
     <section className="task-flow">
@@ -280,12 +279,24 @@ export default function NewBusinessTaskPage() {
           <div>
             <p className="task-panel-kicker">Этап 3 из 4</p>
             <h2>Проверьте и отредактируйте карточку</h2>
-            <p className="muted task-panel-copy">Пустые поля можно дополнить сейчас или позже. Перед публикацией проверьте предложенный текст.</p>
+            <p className="muted task-panel-copy">Дополните пустые поля перед публикацией, если сведения уже известны. Перед публикацией проверьте предложенный текст.</p>
           </div>
           <div className="task-callout">
             <strong>Решение остаётся за вами</strong>
             <span>Карточка появится в каталоге только после вашего подтверждения. Низкая готовность не скроет задачу.</span>
           </div>
+          <aside className="readiness-preview" aria-label="Предпросмотр готовности">
+            <div role="status" aria-live="polite">
+              <h3>Готовность: {preview.score}/100 · {READINESS_LABELS[preview.readinessLevel]}</h3>
+              <p>{nextLevel ? `До следующего уровня: ${nextLevel - preview.score} баллов.` : "Все поля рейтинга заполнены."}</p>
+            </div>
+            <progress max={100} value={preview.score} aria-label="Рейтинг готовности" />
+            <p className="muted">Баллы отражают заполненность, а не достоверность. Указывайте только подтверждённые сведения; если данных нет, оставьте поле пустым.</p>
+            <ul className="readiness-breakdown">
+              {preview.details.map((item) => <li key={item.key}><span>{item.label}</span><strong>{item.points}/{item.maxPoints}</strong></li>)}
+            </ul>
+            {preview.suggestions.length > 0 && <details open><summary>Как повысить готовность</summary><ul>{preview.suggestions.map((hint) => <li key={hint}>{hint}</li>)}</ul></details>}
+          </aside>
           <div className="task-sections">
             {fieldSections.map((section) => (
               <section className="task-section" key={section.title}>

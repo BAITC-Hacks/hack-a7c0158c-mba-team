@@ -1,13 +1,14 @@
 import "server-only";
-import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, randomInt, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import Database from "better-sqlite3";
 
 const scrypt = promisify(scryptCallback);
-const databasePath = join(process.cwd(), "data", "ai-sana.db");
-mkdirSync(join(process.cwd(), "data"), { recursive: true });
+const dataDirectory = process.env.AI_SANA_DATA_DIR || join(process.cwd(), "data");
+const databasePath = join(dataDirectory, "ai-sana.db");
+mkdirSync(dataDirectory, { recursive: true });
 const db = new Database(databasePath);
 db.pragma("journal_mode = WAL");
 db.exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE, phone TEXT UNIQUE, password_hash TEXT NOT NULL, verified_at TEXT, created_at TEXT NOT NULL);
@@ -20,14 +21,15 @@ export type AuthMethod = "email" | "phone";
 
 export function consumeRateLimit(key: string, maxRequests: number, windowMs: number) {
   const now = Date.now();
-  const current = db.prepare("SELECT count, reset_at FROM rate_limits WHERE key = ?").get(key) as { count: number; reset_at: number } | undefined;
-  if (!current || current.reset_at <= now) {
-    db.prepare("INSERT OR REPLACE INTO rate_limits (key, count, reset_at) VALUES (?, ?, ?)").run(key, 1, now + windowMs);
-    return true;
-  }
-  if (current.count >= maxRequests) return false;
-  db.prepare("UPDATE rate_limits SET count = count + 1 WHERE key = ?").run(key);
-  return true;
+  // A single SQLite statement makes the limit atomic across Node processes.
+  const result = db.prepare(`
+    INSERT INTO rate_limits (key, count, reset_at) VALUES (?, 1, ?)
+    ON CONFLICT(key) DO UPDATE SET
+      count = CASE WHEN reset_at <= ? THEN 1 ELSE count + 1 END,
+      reset_at = CASE WHEN reset_at <= ? THEN excluded.reset_at ELSE reset_at END
+    WHERE reset_at <= ? OR count < ?
+  `).run(key, now + windowMs, now, now, now, maxRequests);
+  return result.changes === 1;
 }
 
 export function validIdentifier(method: AuthMethod, value: string) {
@@ -62,7 +64,7 @@ export async function startAuth(mode: "login" | "register", method: AuthMethod, 
 }
 async function issueCode(userId: string, method: AuthMethod, identifier: string) {
   const token = randomBytes(20).toString("hex");
-  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const code = String(randomInt(100000, 1000000));
   db.prepare("DELETE FROM verification_codes WHERE user_id = ?").run(userId);
   db.prepare("INSERT INTO verification_codes (token, user_id, code_hash, expires_at) VALUES (?, ?, ?, ?)")
     .run(token, userId, createHash("sha256").update(code).digest("hex"), Date.now() + 10 * 60_000);

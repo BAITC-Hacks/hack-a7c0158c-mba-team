@@ -20,7 +20,7 @@ const taskDrafts: Array<{ id: string; status: BusinessTask["status"] } & TaskFie
   {
     id: "demo-task-delivery", status: "published", title: "Понятнее показывать статус доставки", industry: "Логистика",
     context: "Клиенты звонят оператору, чтобы узнать, где находится заказ.", need: "Нужно показывать клиенту понятный статус и следующий шаг доставки.", users: "Клиенты интернет-магазина.",
-    dataMaterials: "Примеры статусов пока не предоставлены.", constraints: "Решение должно работать как кликабельный прототип.", expectedOutcome: "Кликабельный прототип страницы статуса заказа.", successCriteria: "Проверить прототип на пяти сценариях доставки.", contact: "", interactionFormat: "",
+    dataMaterials: "", constraints: "Решение должно работать как кликабельный прототип. Примеры статусов пока не предоставлены.", expectedOutcome: "Кликабельный прототип страницы статуса заказа.", successCriteria: "Проверить прототип на пяти сценариях доставки.", contact: "", interactionFormat: "",
   },
   {
     id: "demo-task-training", status: "published", title: "Помочь сотрудникам находить обучение", industry: "Образование",
@@ -48,9 +48,9 @@ export const demoTeams: TeamProfile[] = [
 ];
 
 export const demoProposals: Proposal[] = [
-  { id: "demo-proposal-1", taskId: demoTasks[0].id, teamId: demoTeams[0].id, teamName: demoTeams[0].name, idea: "Сравнить сезонный базовый прогноз с простыми моделями по товару и филиалу.", plan: "Очистить выборку, собрать baseline, сравнить метрики и показать результаты в дашборде.", timeline: "3 недели", prototypeUrl: "https://example.com/demo/data-lab", status: "pending", createdAt: "2026-09-23T09:10:00.000Z" },
+  { id: "demo-proposal-1", taskId: demoTasks[0].id, teamId: demoTeams[0].id, teamName: demoTeams[0].name, idea: "Сравнить сезонный базовый прогноз с простыми моделями по товару и филиалу.", plan: "Очистить выборку, собрать baseline, сравнить метрики и показать результаты в дашборде.", timeline: "3 недели", prototypeUrl: "", status: "pending", createdAt: "2026-09-23T09:10:00.000Z" },
   { id: "demo-proposal-2", taskId: demoTasks[0].id, teamId: demoTeams[1].id, teamName: demoTeams[1].name, idea: "Сделать прозрачный экран с прогнозом, дефицитом и факторами спроса.", plan: "Согласовать сценарии, собрать прототип и проверить его с закупщиками.", timeline: "2 недели", prototypeUrl: "", status: "pending", createdAt: "2026-09-23T09:15:00.000Z" },
-  { id: "demo-proposal-3", taskId: demoTasks[1].id, teamId: demoTeams[1].id, teamName: demoTeams[1].name, idea: "Оценивать ожидание по фактической длительности предыдущих приёмов.", plan: "Проверить качество временных отметок и подготовить прототип экрана очереди.", timeline: "3 недели", prototypeUrl: "https://example.com/demo/flow", status: "pending", createdAt: "2026-09-23T09:20:00.000Z" },
+  { id: "demo-proposal-3", taskId: demoTasks[1].id, teamId: demoTeams[1].id, teamName: demoTeams[1].name, idea: "Оценивать ожидание по фактической длительности предыдущих приёмов.", plan: "Проверить качество временных отметок и подготовить прототип экрана очереди.", timeline: "3 недели", prototypeUrl: "", status: "pending", createdAt: "2026-09-23T09:20:00.000Z" },
   { id: "demo-proposal-4", taskId: demoTasks[2].id, teamId: demoTeams[2].id, teamName: demoTeams[2].name, idea: "Показывать инженеру отклонения от обычного уровня потребления.", plan: "Подготовить базовые профили расхода и проверить найденные отклонения с инженером.", timeline: "4 недели", prototypeUrl: "", status: "pending", createdAt: "2026-09-23T09:25:00.000Z" },
-  { id: "demo-proposal-5", taskId: demoTasks[3].id, teamId: demoTeams[3].id, teamName: demoTeams[3].name, idea: "Сгруппировать статусы доставки в понятные этапы для клиента.", plan: "Собрать карту сценариев, нарисовать прототип и пройти пять сценариев.", timeline: "2 недели", prototypeUrl: "https://example.com/demo/route", status: "pending", createdAt: "2026-09-23T09:30:00.000Z" },
+  { id: "demo-proposal-5", taskId: demoTasks[3].id, teamId: demoTeams[3].id, teamName: demoTeams[3].name, idea: "Сгруппировать статусы доставки в понятные этапы для клиента.", plan: "Собрать карту сценариев, нарисовать прототип и пройти пять сценариев.", timeline: "2 недели", prototypeUrl: "", status: "pending", createdAt: "2026-09-23T09:30:00.000Z" },
 ];

@@ -11,3 +11,9 @@ npm-debug.log*
 .DS_Store
 data/*.db
 data/*.db-*
+
+*.tsbuildinfo
+playwright-report/
+test-results/
+data/
+.next-e2e/

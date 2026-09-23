@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { READINESS_DESCRIPTIONS, READINESS_LABELS, scoreTask } from "@/features/tasks/scoring";
 import type { ReadinessLevel, TaskFields } from "@/features/tasks/types";
-import { STORAGE_KEYS } from "@/lib/storage";
+import { STORAGE_KEYS, subscribeToStorageChanges } from "@/lib/storage";
 import styles from "./catalog.module.css";
 
 type ReadinessFilter = "all" | ReadinessLevel;
@@ -50,10 +50,10 @@ export default function Catalog() {
   useEffect(() => {
     const refresh = () => setTasks(readPublishedTasks());
     refresh();
-    window.addEventListener("storage", refresh);
+    const unsubscribe = subscribeToStorageChanges(refresh);
     window.addEventListener("focus", refresh);
     return () => {
-      window.removeEventListener("storage", refresh);
+      unsubscribe();
       window.removeEventListener("focus", refresh);
     };
   }, []);

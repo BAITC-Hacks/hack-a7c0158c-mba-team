@@ -12,20 +12,46 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [verificationToken, setVerificationToken] = useState("");
   const [devCode, setDevCode] = useState("");
+  const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const response = await fetch("/api/auth/request", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, method, identifier: data.get("identifier"), password: data.get("password") }) });
-    const result = await response.json() as { error?: string; authenticated?: boolean; verificationToken?: string; devCode?: string };
-    if (!response.ok) return setError(result.error || "Не удалось продолжить.");
+    setBusy(true);
     setError("");
-    if (result.authenticated) return setSubmitted(true);
-    setVerificationToken(result.verificationToken || ""); setDevCode(result.devCode || "");
+    try {
+      const response = await fetch("/api/auth/request", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode, method, identifier: data.get("identifier"), password: data.get("password") }),
+      });
+      const result = await response.json() as { error?: string; authenticated?: boolean; verificationToken?: string; devCode?: string };
+      if (!response.ok) throw new Error(result.error || "Не удалось продолжить.");
+      if (result.authenticated) { setSubmitted(true); return; }
+      setVerificationToken(result.verificationToken || "");
+      setDevCode(result.devCode || "");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось связаться с сервером.");
+    } finally { setBusy(false); }
   }
 
-  async function verify(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const code = String(new FormData(event.currentTarget).get("code") ?? ""); const response = await fetch("/api/auth/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: verificationToken, code }) }); const result = await response.json() as { error?: string }; if (!response.ok) return setError(result.error || "Не удалось подтвердить код."); setError(""); setSubmitted(true); }
+  async function verify(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const code = String(new FormData(event.currentTarget).get("code") ?? "");
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/auth/verify", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: verificationToken, code }),
+      });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Не удалось подтвердить код.");
+      setSubmitted(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось связаться с сервером.");
+    } finally { setBusy(false); }
+  }
 
   const title = mode === "login" ? "Войти в AI Sana" : "Создать аккаунт";
   const action = mode === "login" ? "Войти" : "Зарегистрироваться";
@@ -38,17 +64,17 @@ export default function AuthPage() {
 
       {submitted ? (
         <div className="success-message" role="status">
-          <p>{mode === "login" ? "Вы вошли в демо-режим." : "Аккаунт создан в демо-режиме."}</p>
+          <p>{mode === "login" ? "Вы вошли в аккаунт." : "Аккаунт создан."}</p>
           <Link className="text-link" href="/">Перейти на главную</Link>
         </div>
       ) : verificationToken ? (
         <form className="auth-card" onSubmit={verify}>
           <h2>Подтвердите {method === "email" ? "e-mail" : "номер телефона"}</h2>
-          <p className="muted">Мы отправили шестизначный код на указанный контакт.</p>
+          <p className="muted">{devCode ? "В локальном режиме код показан ниже; сообщение не отправляется." : "Мы отправили шестизначный код на указанный контакт."}</p>
           {devCode && <p className="task-notice"><strong>Код для локального демо:</strong> {devCode}</p>}
           <label className="auth-field"><span>Код подтверждения</span><input name="code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required autoFocus /></label>
           {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="button" type="submit">Подтвердить</button>
+          <button className="button" type="submit" disabled={busy}>Подтвердить</button>
         </form>
       ) : (
         <form className="auth-card" onSubmit={submit}>
@@ -73,7 +99,7 @@ export default function AuthPage() {
           </label>
           <label className="auth-field"><span>Пароль</span><input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={8} placeholder="Минимум 8 символов" required /></label>
           {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="button" type="submit">{action}</button>
+          <button className="button" type="submit" disabled={busy}>{action}</button>
           <p className="muted">Пароль хранится в базе только в виде криптографического хеша.</p>
         </form>
       )}

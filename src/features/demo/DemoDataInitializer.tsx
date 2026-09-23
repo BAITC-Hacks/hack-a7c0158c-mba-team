@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { scoreTask } from "@/features/tasks/scoring";
 import { demoProposals, demoTasks, demoTeams } from "@/lib/demo-data";
 import {
   getProposals,
@@ -15,6 +16,15 @@ import {
 
 export function DemoDataInitializer() {
   useEffect(() => {
+    // Repair only the exact old synthetic example, preserving user edits.
+    const existingTasks = getTasks();
+    const repaired = existingTasks.map((task) => {
+      if (task.id !== "demo-task-delivery" || task.dataMaterials !== "Примеры статусов пока не предоставлены.") return task;
+      const fields = { ...task, dataMaterials: "", constraints: `${task.constraints} Примеры статусов пока не предоставлены.`.trim() };
+      const { score, readinessLevel } = scoreTask(fields);
+      return { ...fields, score, readinessLevel };
+    });
+    if (repaired.some((task, i) => task !== existingTasks[i])) saveTasks(repaired);
     if (hasDemoSeed()) return;
 
     const tasks = getTasks();

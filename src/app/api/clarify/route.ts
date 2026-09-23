@@ -1,5 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { consumeRateLimit, getSessionUser } from "@/lib/auth-db";
 import type { TaskFields } from "@/features/tasks/types";
+
+export const runtime = "nodejs";
 
 type QuestionField = Exclude<keyof TaskFields, "title" | "industry">;
 type ClarificationQuestion = { field: QuestionField; text: string };
@@ -94,7 +97,7 @@ function parseClarification(value: unknown): ClarificationOutput | null {
   if (!fieldNames.every((key) => typeof suggestedFields[key] === "string")) return null;
 
   const questions = value.questions;
-  if (questions.length < 3 || questions.length > 5) return null;
+  if (questions.length !== 3) return null;
   const parsedQuestions: ClarificationQuestion[] = [];
   const seenFields = new Set<string>();
 
@@ -126,10 +129,30 @@ function responseText(body: OpenAIResponse) {
 }
 
 /** Analyzes a rough task description. Falls back to deterministic questions if AI is unavailable or malformed. */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const user = getSessionUser(request.cookies.get("ai_sana_session")?.value);
+  if (!user) return NextResponse.json({ error: "Войдите, чтобы уточнить задачу." }, { status: 401 });
+
   let input: ClarifyInput;
   try {
-    input = await request.json() as ClarifyInput;
+    // Cap actual streamed bytes; Content-Length alone can be absent or forged.
+    const reader = request.body?.getReader();
+    if (!reader) throw new Error("Empty body");
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 24_000) {
+        await reader.cancel();
+        return NextResponse.json({ error: "Слишком большой запрос." }, { status: 413 });
+      }
+      chunks.push(value);
+    }
+    const decoded: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    if (!isRecord(decoded)) throw new Error("Expected object");
+    input = decoded;
   } catch {
     return NextResponse.json({ error: "Ожидается JSON в теле запроса." }, { status: 400 });
   }
@@ -141,11 +164,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Описание должно быть короче 5000 символов." }, { status: 400 });
   }
 
+  if (!consumeRateLimit(`clarify:user:${user.id}`, 5, 60_000)) {
+    return NextResponse.json({ error: "Не более 5 уточнений в минуту. Подождите минуту." },
+      { status: 429, headers: { "Retry-After": "60" } });
+  }
+
   const description = input.description.trim();
   const industry = typeof input.industry === "string" ? input.industry.trim().slice(0, 120) : "";
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(fallback(description, industry, "OPENAI_API_KEY не задан — используются демонстрационные вопросы."));
+  }
+
+  // Shared budget prevents account/IP rotation from bypassing the spending cap.
+  if (!consumeRateLimit("clarify:global", 100, 60 * 60_000)) {
+    return NextResponse.json({ error: "Часовой лимит AI-запросов исчерпан. Повторите позже." },
+      { status: 429, headers: { "Retry-After": "3600" } });
   }
 
   try {
