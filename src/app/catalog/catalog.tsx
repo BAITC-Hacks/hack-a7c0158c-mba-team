@@ -24,18 +24,27 @@ const readinessClassNames: Record<ReadinessLevel, string> = {
   priority: styles.readinessPriority,
 };
 
-function isPublishedTask(value: unknown): value is PublishedTask {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+function normalizePublishedTask(value: unknown): PublishedTask | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   const task = value as Record<string, unknown>;
-  return task.status === "published" && typeof task.id === "string" &&
-    taskFieldKeys.every((key) => typeof task[key] === "string");
+  if (task.status !== "published" || typeof task.id !== "string") return null;
+
+  const fields = Object.fromEntries(taskFieldKeys.map((key) => [
+    key,
+    typeof task[key] === "string" ? task[key] : "",
+  ])) as TaskFields;
+
+  return { ...fields, id: task.id, status: "published" };
 }
 
 function readPublishedTasks(): PublishedTask[] {
   try {
     const value: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEYS.tasks) ?? "[]");
     if (!Array.isArray(value)) return [];
-    return value.filter(isPublishedTask);
+    return value.flatMap((item) => {
+      const task = normalizePublishedTask(item);
+      return task ? [task] : [];
+    });
   } catch {
     return [];
   }
@@ -50,9 +59,11 @@ export default function Catalog() {
   useEffect(() => {
     const refresh = () => setTasks(readPublishedTasks());
     refresh();
+    window.addEventListener("ai-sana:storage-change", refresh);
     window.addEventListener("storage", refresh);
     window.addEventListener("focus", refresh);
     return () => {
+      window.removeEventListener("ai-sana:storage-change", refresh);
       window.removeEventListener("storage", refresh);
       window.removeEventListener("focus", refresh);
     };
