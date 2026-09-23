@@ -282,6 +282,7 @@ export default function NewBusinessTaskPage() {
           <p className="muted">Рейтинг готовности: {publishedTask.score}/100. Карточка сохранена в этом браузере.</p>
           <div className="task-actions">
             <Link className="button" href="/catalog">Перейти в каталог</Link>
+            <Link className="button button-secondary" href={`/business/tasks/${publishedTask.id}/responses`}>Посмотреть отклики</Link>
             <button className="button button-secondary" type="button" onClick={startOver}>Создать ещё задачу</button>
           </div>
         </div>
