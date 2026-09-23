@@ -26,6 +26,25 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <Link className="auth-link" href="/auth">Войти</Link>
         </header>
         <main className="container">{children}</main>
+        <footer className="site-footer">
+          <div className="site-footer-inner">
+            <div className="site-footer-top">
+              <div className="site-footer-about">
+                <Link className="brand" href="/">AI Sana</Link>
+                <p>Практические бизнес-задачи и открытый выбор студенческих команд.</p>
+              </div>
+              <nav className="site-footer-nav" aria-label="Ссылки в подвале">
+                <Link href="/">Главная</Link>
+                <Link href="/business/new">Создать задачу</Link>
+                <Link href="/catalog">Каталог задач</Link>
+              </nav>
+            </div>
+            <div className="site-footer-bottom">
+              <span>HackAlem AI · практический MVP</span>
+              <span>Рейтинг готовности помогает начать работу вместе</span>
+            </div>
+          </div>
+        </footer>
       </body>
     </html>
   );
