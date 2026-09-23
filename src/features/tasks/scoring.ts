@@ -24,23 +24,50 @@ export const READINESS_DESCRIPTIONS: Record<ReadinessLevel, string> = {
   priority: "Задача подробно описана и готова к работе.",
 };
 
+const FIELD_LABELS: Record<keyof TaskFields, string> = {
+  title: "Название задачи",
+  industry: "Тема или отрасль",
+  context: "Контекст",
+  need: "Потребность или проблема",
+  users: "Пользователи",
+  dataMaterials: "Данные и материалы",
+  constraints: "Ограничения",
+  expectedOutcome: "Ожидаемый результат",
+  successCriteria: "Критерии успеха",
+  contact: "Контакт со стороны бизнеса",
+  interactionFormat: "Формат взаимодействия",
+};
+
 export function scoreTask(task: TaskFields) {
-  const details = SCORE_CRITERIA.map(({ key, weight, label, fields }) => ({
-    key,
-    label,
-    points: fields.every((field) => typeof task[field as keyof TaskFields] === "string" && task[field as keyof TaskFields].trim().length > 0) ? weight : 0,
-    maxPoints: weight,
-  }));
+  const details = SCORE_CRITERIA.map(({ key, weight, label, fields }) => {
+    const fieldPoints = weight / fields.length;
+    const filledFields = fields.filter((field) => {
+      const value = task[field as keyof TaskFields];
+      return typeof value === "string" && value.trim().length > 0;
+    });
+    const missingFields = fields.filter((field) => !filledFields.includes(field));
+
+    return {
+      key,
+      label,
+      points: filledFields.length * fieldPoints,
+      maxPoints: weight,
+      pointsPerField: fieldPoints,
+      missingFields,
+    };
+  });
   const score = details.reduce((sum, item) => sum + item.points, 0);
   const readinessLevel: ReadinessLevel = score < 40 ? "draft" : score < 70 ? "working" : score < 90 ? "ready" : "priority";
+  const missing = details.flatMap((item) => item.missingFields.map((field) => FIELD_LABELS[field as keyof TaskFields]));
+  const suggestions = details.flatMap((item) =>
+    item.missingFields.map((field) => `Заполните поле «${FIELD_LABELS[field as keyof TaskFields]}» (+${item.pointsPerField} баллов).`),
+  );
 
   return {
     score,
     readinessLevel,
     details,
-    missing: details.filter((item) => item.points === 0).map((item) => item.label),
-    suggestions: details
-      .filter((item) => item.points === 0)
-      .map((item) => `Добавьте сведения: ${item.label.toLowerCase()} (+${item.maxPoints} баллов).`),
+    missing,
+    suggestions,
   };
 }
