@@ -32,6 +32,13 @@ export type TeamProfile = {
   technologies: string[];
 };
 
+export type ProgressMilestone = {
+  id: string;
+  title: string;
+  points: number;
+  confirmedAt: string;
+};
+
 export type Proposal = {
   id: string;
   taskId: string;
@@ -43,4 +50,5 @@ export type Proposal = {
   prototypeUrl: string;
   status: ProposalStatus;
   createdAt: string;
+  milestones?: ProgressMilestone[];
 };

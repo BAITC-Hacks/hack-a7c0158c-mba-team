@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { getProposals } from "@/lib/storage";
-import { useLocalCollection } from "@/lib/use-local-collection";
+import type { Proposal } from "@/features/tasks/types";
+import { useServerCollection } from "@/lib/use-server-collection";
 
 const statusContent = {
   pending: {
@@ -20,14 +20,14 @@ const statusContent = {
 } as const;
 
 export function ProposalStatus({ taskId, proposalId }: { taskId: string; proposalId: string }) {
-  const proposals = useLocalCollection(getProposals);
+  const proposals = useServerCollection<Proposal>("proposals");
   const proposal = proposals.find((item) => item.id === proposalId && item.taskId === taskId);
 
   if (!proposal) {
     return (
       <div className="placeholder">
-        <p>Отклик не найден в этом браузере.</p>
-        <p className="muted">В MVP данные хранятся локально, поэтому статус доступен на устройстве, где был отправлен отклик.</p>
+        <p>Отклик не найден.</p>
+        <p className="muted">Проверьте ссылку или вернитесь в каталог и откройте статус из подтверждения отправки.</p>
       </div>
     );
   }
@@ -43,6 +43,14 @@ export function ProposalStatus({ taskId, proposalId }: { taskId: string; proposa
       <p>{content.description}</p>
       <p><strong>Команда:</strong> {proposal.teamName}</p>
       <p><strong>Идея:</strong> {proposal.idea}</p>
+      {proposal.status === "selected" && (
+        <section className="proposal-progress">
+          <h3>Подтверждённый прогресс · {(proposal.milestones ?? []).reduce((total, item) => total + item.points, 0)} баллов</h3>
+          {(proposal.milestones ?? []).length === 0 ? <p className="muted">Бизнес пока не подтвердил этапы.</p> : (
+            <ul>{proposal.milestones?.map((milestone) => <li key={milestone.id}>{milestone.title} <strong>+{milestone.points}</strong></li>)}</ul>
+          )}
+        </section>
+      )}
       <Link className="text-link" href="/catalog">Вернуться в каталог</Link>
     </article>
   );
