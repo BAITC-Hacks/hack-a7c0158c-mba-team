@@ -151,6 +151,7 @@ button.button:disabled { cursor: wait; opacity: .65; }
   .container { padding: 40px 0; }
   .site-header { gap: 12px; padding: 12px 20px; flex-wrap: wrap; }
   nav { order: 3; width: 100%; margin-left: 0; justify-content: space-between; }
+}
 .home-page { width: min(100%, 1040px); margin: 0 auto; }
 .home-hero { max-width: 900px; margin: 0 auto; padding: 24px 0 56px; text-align: center; }
 .home-hero h1 { max-width: 840px; margin: 14px auto 18px; font-size: clamp(2.35rem, 5.2vw, 4rem); line-height: 1.08; letter-spacing: -.045em; }
