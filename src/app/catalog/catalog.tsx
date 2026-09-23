@@ -126,6 +126,7 @@ export default function Catalog() {
               </div>
               <div className="task-card-footer">
                 <span>{result.missing.length ? `Нужно уточнить: ${result.missing.length}` : "Карточка заполнена"}</span>
+                <Link className="text-link" href={`/catalog/${task.id}/respond`}>Откликнуться</Link>
               </div>
             </article>
           ))}

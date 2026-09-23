@@ -1,5 +1,5 @@
 export type ProposalFormValues = {
-  teamId: string;
+  teamName: string;
   idea: string;
   plan: string;
   timeline: string;

@@ -1,0 +1,4 @@
+import { NextResponse } from "next/server";
+import { confirmCode, createSession } from "@/lib/auth-db";
+export const runtime = "nodejs";
+export async function POST(request: Request) { const body = await request.json().catch(() => null) as { token?: unknown; code?: unknown } | null; if (!body || typeof body.token !== "string" || !/^\d{6}$/.test(String(body.code))) return NextResponse.json({ error: "Введите шестизначный код." }, { status: 400 }); try { const response = NextResponse.json({ authenticated: true }); response.cookies.set("ai_sana_session", createSession(confirmCode(body.token, String(body.code))), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 604800 }); return response; } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Не удалось подтвердить код." }, { status: 400 }); } }
