@@ -1,21 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { READINESS_DESCRIPTIONS, READINESS_LABELS, scoreTask } from "@/features/tasks/scoring";
-import type { ReadinessLevel, TaskFields } from "@/features/tasks/types";
-import { STORAGE_KEYS, subscribeToStorageChanges } from "@/lib/storage";
+import type { BusinessTask, ReadinessLevel, TaskFields } from "@/features/tasks/types";
+import { getTasks } from "@/lib/storage";
+import { useSharedCollection } from "@/lib/use-shared-collection";
 import styles from "./catalog.module.css";
 
 type ReadinessFilter = "all" | ReadinessLevel;
 type SortOrder = "score-desc" | "score-asc";
-type PublishedTask = TaskFields & { id: string; status: "published" };
+type PublishedTask = BusinessTask;
 
 const readinessOrder: ReadinessLevel[] = ["draft", "working", "ready", "priority"];
-const taskFieldKeys: (keyof TaskFields)[] = [
-  "title", "industry", "context", "need", "users", "dataMaterials", "constraints",
-  "expectedOutcome", "successCriteria", "contact", "interactionFormat",
-];
 
 const readinessClassNames: Record<ReadinessLevel, string> = {
   draft: styles.readinessDraft,
@@ -24,39 +21,11 @@ const readinessClassNames: Record<ReadinessLevel, string> = {
   priority: styles.readinessPriority,
 };
 
-function isPublishedTask(value: unknown): value is PublishedTask {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const task = value as Record<string, unknown>;
-  return task.status === "published" && typeof task.id === "string" &&
-    taskFieldKeys.every((key) => typeof task[key] === "string");
-}
-
-function readPublishedTasks(): PublishedTask[] {
-  try {
-    const value: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEYS.tasks) ?? "[]");
-    if (!Array.isArray(value)) return [];
-    return value.filter(isPublishedTask);
-  } catch {
-    return [];
-  }
-}
-
 export default function Catalog() {
-  const [tasks, setTasks] = useState<PublishedTask[]>([]);
+  const tasks = useSharedCollection<PublishedTask>(getTasks);
   const [industry, setIndustry] = useState("all");
   const [readiness, setReadiness] = useState<ReadinessFilter>("all");
   const [sortOrder, setSortOrder] = useState<SortOrder>("score-desc");
-
-  useEffect(() => {
-    const refresh = () => setTasks(readPublishedTasks());
-    refresh();
-    const unsubscribe = subscribeToStorageChanges(refresh);
-    window.addEventListener("focus", refresh);
-    return () => {
-      unsubscribe();
-      window.removeEventListener("focus", refresh);
-    };
-  }, []);
 
   const industries = useMemo(
     () => [...new Set(tasks.map((task) => task.industry.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ru")),

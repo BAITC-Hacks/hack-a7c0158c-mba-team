@@ -1,6 +1,14 @@
 import { scoreTask } from "@/features/tasks/scoring";
 import type { BusinessTask, Proposal, TaskFields, TeamProfile } from "@/features/tasks/types";
 
+export const demoDraftDescriptions = [
+  { id: "draft-retail", label: "Короткий запрос · торговля", industry: "Розничная торговля", description: "В магазинах часто остаются лишние товары, а иногда популярные позиции заканчиваются." },
+  { id: "draft-health", label: "Неполное описание · здравоохранение", industry: "Здравоохранение", description: "Нужно сократить ожидание пациентов. Регистратура не понимает, сколько примерно займёт очередь." },
+  { id: "draft-energy", label: "Есть контекст и данные · энергетика", industry: "Энергетика", description: "В офисном здании расход энергии отличается в похожие дни. Есть почасовые показания счётчиков за год, нужно находить необычные помещения." },
+  { id: "draft-logistics", label: "Есть решение, не хватает критериев · логистика", industry: "Логистика", description: "Клиенты часто звонят оператору, чтобы узнать статус доставки. Хотим сделать понятную страницу заказа, но примеры статусов и критерий успешного теста пока не определили." },
+  { id: "draft-education", label: "Слабый запрос · образование", industry: "Образование", description: "Помочь сотрудникам выбирать обучение." },
+] as const;
+
 const taskDrafts: Array<{ id: string; status: BusinessTask["status"] } & TaskFields> = [
   {
     id: "demo-task-retail-demand", status: "published", title: "Прогноз спроса в магазинах", industry: "Розничная торговля",

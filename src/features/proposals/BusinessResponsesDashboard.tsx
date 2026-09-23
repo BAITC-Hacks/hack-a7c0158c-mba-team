@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import type { ProposalStatus } from "@/features/tasks/types";
 import { getProposals, getTasks } from "@/lib/storage";
-import { useLocalCollection } from "@/lib/use-local-collection";
+import { useSharedCollection } from "@/lib/use-shared-collection";
 
 const statusLabels: Record<ProposalStatus, string> = {
   pending: "На рассмотрении",
@@ -13,8 +13,8 @@ const statusLabels: Record<ProposalStatus, string> = {
 };
 
 export function BusinessResponsesDashboard() {
-  const tasks = useLocalCollection(getTasks);
-  const proposals = useLocalCollection(getProposals);
+  const tasks = useSharedCollection(getTasks);
+  const proposals = useSharedCollection(getProposals);
   const counts = useMemo(() => proposals.reduce<Record<ProposalStatus, number>>((result, proposal) => {
     result[proposal.status] += 1;
     return result;
@@ -47,9 +47,12 @@ export function BusinessResponsesDashboard() {
                   <h2>{task.title || "Задача без названия"}</h2>
                   <p className="muted">Всего: {taskProposals.length} · На рассмотрении: {pending}</p>
                 </div>
-                <Link className="button" href={`/business/tasks/${task.id}/responses`}>
-                  Смотреть отклики{taskProposals.length ? ` (${taskProposals.length})` : ""}
-                </Link>
+                <div className="actions">
+                  <Link className="button button-secondary" href={`/business/tasks/${task.id}/edit`}>Изменить карточку</Link>
+                  <Link className="button" href={`/business/tasks/${task.id}/responses`}>
+                    Смотреть отклики{taskProposals.length ? ` (${taskProposals.length})` : ""}
+                  </Link>
+                </div>
               </article>
             );
           })}

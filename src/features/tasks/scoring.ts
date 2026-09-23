@@ -38,12 +38,20 @@ const FIELD_LABELS: Record<keyof TaskFields, string> = {
   interactionFormat: "Формат взаимодействия",
 };
 
+const unavailableAnswer = /(?:нет\s+(?:доступных?\s+)?(?:данных|материалов|примера|доступа|информации)|(?:данных|материалов|примеров?|источников?)\s+(?:пока\s+)?нет|не\s+(?:предоставлен(?:ы|а|о)?|указан(?:ы|а|о)?|доступен|доступны|доступно|определен(?:ы|а|о)?|определили|известен|известно|знаю)|пока\s+не|отсутств(?:ует|уют|ие)|n\/a|unknown)/i;
+
+function hasUsefulAnswer(value: unknown) {
+  if (typeof value !== "string") return false;
+  const answer = value.trim();
+  return answer.length > 0 && !unavailableAnswer.test(answer);
+}
+
 export function scoreTask(task: TaskFields) {
   const details = SCORE_CRITERIA.map(({ key, weight, label, fields }) => {
     const fieldPoints = weight / fields.length;
     const filledFields = fields.filter((field) => {
       const value = task[field as keyof TaskFields];
-      return typeof value === "string" && value.trim().length > 0;
+      return hasUsefulAnswer(value);
     });
     const missingFields = fields.filter((field) => !filledFields.includes(field));
 

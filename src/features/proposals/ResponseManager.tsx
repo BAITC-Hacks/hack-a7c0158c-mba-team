@@ -1,13 +1,28 @@
 "use client";
 
 import { getProposals, setProposalStatus } from "@/lib/storage";
-import { useLocalCollection } from "@/lib/use-local-collection";
+import { useSharedCollection } from "@/lib/use-shared-collection";
+import { useState } from "react";
 
 const statusLabels = { pending: "На рассмотрении", selected: "Выбрана", rejected: "Отклонена" };
 
 export function ResponseManager({ taskId }: { taskId: string }) {
-  const allProposals = useLocalCollection(getProposals);
+  const allProposals = useSharedCollection(getProposals);
+  const [busyId, setBusyId] = useState("");
+  const [error, setError] = useState("");
   const proposals = allProposals.filter((proposal) => proposal.taskId === taskId);
+
+  async function decide(proposalId: string, status: "selected" | "rejected") {
+    setBusyId(proposalId);
+    setError("");
+    try {
+      await setProposalStatus(proposalId, status);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось сохранить решение.");
+    } finally {
+      setBusyId("");
+    }
+  }
 
   if (proposals.length === 0) {
     return <p className="placeholder">Пока нет откликов. Когда команда отправит предложение, оно появится здесь.</p>;
@@ -15,6 +30,7 @@ export function ResponseManager({ taskId }: { taskId: string }) {
 
   return (
     <div className="proposal-list">
+      {error && <p className="task-error" role="alert">{error}</p>}
       {proposals.map((proposal) => (
         <article className="proposal-card" key={proposal.id}>
           <div className="proposal-heading">
@@ -28,8 +44,8 @@ export function ResponseManager({ taskId }: { taskId: string }) {
           <p className="muted">Отправлено: {new Date(proposal.createdAt).toLocaleString("ru-RU")}</p>
           {proposal.status === "pending" && (
             <div className="actions">
-              <button className="button" onClick={() => setProposalStatus(proposal.id, "selected")}>Выбрать команду</button>
-              <button className="button button-secondary" onClick={() => setProposalStatus(proposal.id, "rejected")}>Отклонить</button>
+              <button className="button" disabled={busyId === proposal.id} onClick={() => void decide(proposal.id, "selected")}>Выбрать команду</button>
+              <button className="button button-secondary" disabled={busyId === proposal.id} onClick={() => void decide(proposal.id, "rejected")}>Отклонить</button>
             </div>
           )}
         </article>

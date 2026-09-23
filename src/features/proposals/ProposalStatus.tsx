@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { getProposals } from "@/lib/storage";
-import { useLocalCollection } from "@/lib/use-local-collection";
+import { useSharedCollection } from "@/lib/use-shared-collection";
 
 const statusContent = {
   pending: {
@@ -20,14 +20,14 @@ const statusContent = {
 } as const;
 
 export function ProposalStatus({ taskId, proposalId }: { taskId: string; proposalId: string }) {
-  const proposals = useLocalCollection(getProposals);
+  const proposals = useSharedCollection(getProposals);
   const proposal = proposals.find((item) => item.id === proposalId && item.taskId === taskId);
 
   if (!proposal) {
     return (
       <div className="placeholder">
-        <p>Отклик не найден в этом браузере.</p>
-        <p className="muted">В MVP данные хранятся локально, поэтому статус доступен на устройстве, где был отправлен отклик.</p>
+        <p>Отклик пока не найден.</p>
+        <p className="muted">Проверьте ссылку или обновите страницу через несколько секунд.</p>
       </div>
     );
   }

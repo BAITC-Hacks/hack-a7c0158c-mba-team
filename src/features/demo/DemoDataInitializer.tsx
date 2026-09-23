@@ -1,40 +1,38 @@
 "use client";
 
 import { useEffect } from "react";
-import { scoreTask } from "@/features/tasks/scoring";
-import { demoProposals, demoTasks, demoTeams } from "@/lib/demo-data";
-import {
-  getProposals,
-  getTasks,
-  getTeams,
-  hasDemoSeed,
-  markDemoSeeded,
-  saveProposals,
-  saveTasks,
-  saveTeams,
-} from "@/lib/storage";
+import { STORAGE_KEYS } from "@/lib/storage";
+
+function readLegacyCollection(key: string): unknown[] {
+  try {
+    const value: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
 
 export function DemoDataInitializer() {
   useEffect(() => {
-    // Repair only the exact old synthetic example, preserving user edits.
-    const existingTasks = getTasks();
-    const repaired = existingTasks.map((task) => {
-      if (task.id !== "demo-task-delivery" || task.dataMaterials !== "Примеры статусов пока не предоставлены.") return task;
-      const fields = { ...task, dataMaterials: "", constraints: `${task.constraints} Примеры статусов пока не предоставлены.`.trim() };
-      const { score, readinessLevel } = scoreTask(fields);
-      return { ...fields, score, readinessLevel };
-    });
-    if (repaired.some((task, i) => task !== existingTasks[i])) saveTasks(repaired);
-    if (hasDemoSeed()) return;
+    try {
+      if (window.localStorage.getItem(STORAGE_KEYS.sharedMigrated) === "true") return;
 
-    const tasks = getTasks();
-    const teams = getTeams();
-    const proposals = getProposals();
-
-    saveTasks([...tasks, ...demoTasks.filter((item) => !tasks.some((current) => current.id === item.id))]);
-    saveTeams([...teams, ...demoTeams.filter((item) => !teams.some((current) => current.id === item.id))]);
-    saveProposals([...proposals, ...demoProposals.filter((item) => !proposals.some((current) => current.id === item.id))]);
-    markDemoSeeded();
+      void fetch("/api/data/migrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tasks: readLegacyCollection(STORAGE_KEYS.tasks),
+          teams: readLegacyCollection(STORAGE_KEYS.teams),
+          proposals: readLegacyCollection(STORAGE_KEYS.proposals),
+        }),
+      }).then((response) => {
+        if (response.ok) window.localStorage.setItem(STORAGE_KEYS.sharedMigrated, "true");
+      }).catch(() => {
+        // A reload retries migration if the server was unavailable.
+      });
+    } catch {
+      // The server database remains usable when browser storage is disabled.
+    }
   }, []);
 
   return null;
