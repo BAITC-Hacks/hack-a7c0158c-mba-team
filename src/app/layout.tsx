@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 const navigation = [
   { href: "/business/new", label: "Создать задачу" },
   { href: "/catalog", label: "Каталог задач" },
+  { href: "/business/responses", label: "Отклики" },
 ];
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
