@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import type { ProposalStatus } from "@/features/tasks/types";
-import { getProposals, getTasks } from "@/lib/storage";
-import { useLocalCollection } from "@/lib/use-local-collection";
+import { useServerCollection } from "@/lib/use-server-collection";
+import type { BusinessTask, Proposal } from "@/features/tasks/types";
 
 const statusLabels: Record<ProposalStatus, string> = {
   pending: "На рассмотрении",
@@ -13,8 +13,8 @@ const statusLabels: Record<ProposalStatus, string> = {
 };
 
 export function BusinessResponsesDashboard() {
-  const tasks = useLocalCollection(getTasks);
-  const proposals = useLocalCollection(getProposals);
+  const tasks = useServerCollection<BusinessTask>("tasks");
+  const proposals = useServerCollection<Proposal>("proposals");
   const counts = useMemo(() => proposals.reduce<Record<ProposalStatus, number>>((result, proposal) => {
     result[proposal.status] += 1;
     return result;
@@ -50,6 +50,7 @@ export function BusinessResponsesDashboard() {
                 <Link className="button" href={`/business/tasks/${task.id}/responses`}>
                   Смотреть отклики{taskProposals.length ? ` (${taskProposals.length})` : ""}
                 </Link>
+                <Link className="button button-secondary" href={`/business/tasks/${task.id}/edit`}>Изменить карточку</Link>
               </article>
             );
           })}

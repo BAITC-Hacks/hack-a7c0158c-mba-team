@@ -2,15 +2,18 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { createProposal } from "@/lib/storage";
+import { notifyServerCollectionChanged } from "@/lib/use-server-collection";
+import type { Proposal } from "@/features/tasks/types";
 
 export function ProposalForm({ taskId }: { taskId: string }) {
   const [error, setError] = useState("");
   const [proposalId, setProposalId] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const teamName = String(formData.get("teamName") ?? "").trim();
     const idea = String(formData.get("idea") ?? "").trim();
     const plan = String(formData.get("plan") ?? "").trim();
@@ -32,18 +35,24 @@ export function ProposalForm({ taskId }: { taskId: string }) {
       }
     }
 
-    const proposal = createProposal({
-      taskId,
-      teamId: teamName.toLocaleLowerCase("ru-RU").replaceAll(/\s+/g, "-"),
-      teamName,
-      idea,
-      plan,
-      timeline,
-      prototypeUrl,
-    });
-    setError("");
-    setProposalId(proposal.id);
-    event.currentTarget.reset();
+    setBusy(true);
+    try {
+      const response = await fetch("/api/proposals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId, teamName, idea, plan, timeline, prototypeUrl }),
+      });
+      const result = await response.json() as Proposal & { error?: string };
+      if (!response.ok) throw new Error(result.error || "Не удалось отправить отклик.");
+      notifyServerCollectionChanged();
+      setError("");
+      setProposalId(result.id);
+      form.reset();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось отправить отклик.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (proposalId) {
@@ -66,7 +75,7 @@ export function ProposalForm({ taskId }: { taskId: string }) {
       <label>Предполагаемый срок<input name="timeline" required maxLength={120} placeholder="Например, 2 недели" /></label>
       <label>Ссылка на прототип, если есть<input name="prototypeUrl" type="url" placeholder="https://…" /></label>
       {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="button" type="submit">Отправить отклик</button>
+      <button className="button" type="submit" disabled={busy}>{busy ? "Отправляем…" : "Отправить отклик"}</button>
     </form>
   );
 }
