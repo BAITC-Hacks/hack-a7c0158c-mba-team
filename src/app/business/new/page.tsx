@@ -32,18 +32,40 @@ const emptyTask: TaskFields = {
   interactionFormat: "",
 };
 
-const fields: { key: keyof TaskFields; label: string; hint: string; short?: boolean }[] = [
-  { key: "title", label: "Название задачи", hint: "Коротко и по делу", short: true },
-  { key: "industry", label: "Тема или отрасль", hint: "Например: образование, торговля, финансы", short: true },
-  { key: "context", label: "Контекст", hint: "Что происходит сейчас?" },
-  { key: "need", label: "Потребность или проблема", hint: "Что нужно изменить или решить?" },
-  { key: "users", label: "Пользователи", hint: "Для кого создаётся решение?" },
-  { key: "dataMaterials", label: "Данные и материалы", hint: "Какие данные, примеры или источники доступны?" },
-  { key: "constraints", label: "Ограничения", hint: "Сроки, технологии, доступы и другие границы" },
-  { key: "expectedOutcome", label: "Ожидаемый результат", hint: "Что команда должна передать в конце?" },
-  { key: "successCriteria", label: "Критерии успеха", hint: "По каким признакам вы примете результат?" },
-  { key: "contact", label: "Контакт со стороны бизнеса", hint: "Имя или роль контактного человека" },
-  { key: "interactionFormat", label: "Формат взаимодействия", hint: "Как часто и каким способом команда получит обратную связь?" },
+const fieldSections: {
+  title: string;
+  description: string;
+  fields: { key: keyof TaskFields; label: string; hint: string; short?: boolean }[];
+}[] = [
+  {
+    title: "О задаче",
+    description: "Помогите командам быстро понять проблему и для кого нужно решение.",
+    fields: [
+      { key: "title", label: "Название задачи", hint: "Коротко и по делу", short: true },
+      { key: "industry", label: "Тема или отрасль", hint: "Например: образование, торговля, финансы", short: true },
+      { key: "context", label: "Контекст", hint: "Что происходит сейчас?" },
+      { key: "need", label: "Потребность или проблема", hint: "Что нужно изменить или решить?" },
+      { key: "users", label: "Пользователи", hint: "Для кого создаётся решение?" },
+    ],
+  },
+  {
+    title: "Результат и ресурсы",
+    description: "Опишите ожидаемый результат, критерии успеха и доступные материалы.",
+    fields: [
+      { key: "expectedOutcome", label: "Ожидаемый результат", hint: "Что команда должна передать в конце?" },
+      { key: "successCriteria", label: "Критерии успеха", hint: "По каким признакам вы примете результат?" },
+      { key: "dataMaterials", label: "Данные и материалы", hint: "Какие данные, примеры или источники доступны?" },
+      { key: "constraints", label: "Ограничения", hint: "Сроки, технологии, доступы и другие границы" },
+    ],
+  },
+  {
+    title: "Связь с бизнесом",
+    description: "Укажите, как команда сможет уточнять детали и получать обратную связь.",
+    fields: [
+      { key: "contact", label: "Контакт со стороны бизнеса", hint: "Имя или роль контактного человека" },
+      { key: "interactionFormat", label: "Формат взаимодействия", hint: "Как часто и каким способом команда получит обратную связь?" },
+    ],
+  },
 ];
 
 const industries = ["Образование", "Розничная торговля", "Финансы", "Здравоохранение", "Производство", "Другое"];
@@ -152,15 +174,29 @@ export default function NewBusinessTaskPage() {
 
   return (
     <section className="task-flow">
-      <p className="eyebrow">Бизнес · создание задачи</p>
-      <h1>Опишите задачу — мы поможем её уточнить</h1>
-      <p className="task-intro">Заполните черновик, ответьте на вопросы и проверьте карточку. Публикация произойдёт только после вашего подтверждения.</p>
+      <div className="task-page-heading">
+        <div className="task-page-copy">
+          <p className="eyebrow">AI Sana · для бизнеса</p>
+          <h1>Превратите запрос в понятную задачу для команды</h1>
+          <p className="task-intro">Начните с короткого описания. Уточните важные детали, проверьте карточку и подтвердите публикацию.</p>
+        </div>
+        <aside className="task-overview" aria-label="Как создаётся задача">
+          <p className="task-overview-kicker">Путь до каталога</p>
+          <h2>Четыре простых шага</h2>
+          <ol>
+            <li><span>01</span><div><strong>Черновик</strong><small>Опишите потребность своими словами</small></div></li>
+            <li><span>02</span><div><strong>Уточнение</strong><small>Ответьте на вопросы помощника</small></div></li>
+            <li><span>03</span><div><strong>Проверка</strong><small>Отредактируйте карточку задачи</small></div></li>
+            <li><span>04</span><div><strong>Публикация</strong><small>Подтвердите размещение в каталоге</small></div></li>
+          </ol>
+        </aside>
+      </div>
 
       <ol className="task-steps" aria-label="Этапы создания задачи">
-        <li className={step === "draft" ? "is-current" : "is-done"}>1. Черновик</li>
-        <li className={step === "questions" ? "is-current" : ["card", "published"].includes(step) ? "is-done" : ""}>2. Уточнение</li>
-        <li className={step === "card" ? "is-current" : step === "published" ? "is-done" : ""}>3. Карточка</li>
-        <li className={step === "published" ? "is-current" : ""}>4. Подтверждение</li>
+        <li aria-current={step === "draft" ? "step" : undefined} className={step === "draft" ? "is-current" : "is-done"}>Черновик</li>
+        <li aria-current={step === "questions" ? "step" : undefined} className={step === "questions" ? "is-current" : ["card", "published"].includes(step) ? "is-done" : ""}>Уточнение</li>
+        <li aria-current={step === "card" ? "step" : undefined} className={step === "card" ? "is-current" : step === "published" ? "is-done" : ""}>Карточка</li>
+        <li aria-current={step === "published" ? "step" : undefined} className={step === "published" ? "is-current" : ""}>Публикация</li>
       </ol>
 
       {error && <p className="task-error" role="alert">{error}</p>}
@@ -241,30 +277,47 @@ export default function NewBusinessTaskPage() {
 
       {step === "card" && (
         <form className="task-panel" onSubmit={confirmAndPublish}>
-          <h2>3. Проверьте и отредактируйте карточку</h2>
-          <p className="muted">Пустые поля можно заполнить сейчас или позже. Проверьте предложенный текст: AI не заменяет ваше подтверждение.</p>
-          <div className="task-field-grid">
-            {fields.map(({ key, label, hint, short }) => (
-              <label className={`task-field${short ? " task-field-short" : ""}`} key={key}>
-                <span>{label}</span>
-                {short ? (
-                  <input
-                    required={key === "title" || key === "industry"}
-                    maxLength={key === "title" ? 120 : 120}
-                    value={card[key]}
-                    onChange={(event) => updateCard(key, event.target.value)}
-                    placeholder={hint}
-                  />
-                ) : (
-                  <textarea
-                    rows={3}
-                    maxLength={2000}
-                    value={card[key]}
-                    onChange={(event) => updateCard(key, event.target.value)}
-                    placeholder={hint}
-                  />
-                )}
-              </label>
+          <div>
+            <p className="task-panel-kicker">Этап 3 из 4</p>
+            <h2>Проверьте и отредактируйте карточку</h2>
+            <p className="muted task-panel-copy">Пустые поля можно дополнить сейчас или позже. Перед публикацией проверьте предложенный текст.</p>
+          </div>
+          <div className="task-callout">
+            <strong>Решение остаётся за вами</strong>
+            <span>Карточка появится в каталоге только после вашего подтверждения. Низкая готовность не скроет задачу.</span>
+          </div>
+          <div className="task-sections">
+            {fieldSections.map((section) => (
+              <section className="task-section" key={section.title}>
+                <div className="task-section-heading">
+                  <h3>{section.title}</h3>
+                  <p>{section.description}</p>
+                </div>
+                <div className="task-field-grid">
+                  {section.fields.map(({ key, label, hint, short }) => (
+                    <label className={`task-field${short ? " task-field-short" : ""}`} key={key}>
+                      <span>{label}</span>
+                      {short ? (
+                        <input
+                          required={key === "title" || key === "industry"}
+                          maxLength={120}
+                          value={card[key]}
+                          onChange={(event) => updateCard(key, event.target.value)}
+                          placeholder={hint}
+                        />
+                      ) : (
+                        <textarea
+                          rows={3}
+                          maxLength={2000}
+                          value={card[key]}
+                          onChange={(event) => updateCard(key, event.target.value)}
+                          placeholder={hint}
+                        />
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
           <div className="task-actions">
