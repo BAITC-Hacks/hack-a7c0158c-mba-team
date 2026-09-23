@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { scoreTask } from "@/features/tasks/scoring";
 import type { BusinessTask, TaskFields } from "@/features/tasks/types";
-import { STORAGE_KEYS } from "@/lib/storage";
+import { notifyServerCollectionChanged } from "@/lib/use-server-collection";
 
 type QuestionField = Exclude<keyof TaskFields, "title" | "industry">;
 type ClarificationQuestion = { field: QuestionField; text: string };
@@ -70,12 +69,6 @@ const fieldSections: {
 
 const industries = ["Образование", "Розничная торговля", "Финансы", "Здравоохранение", "Производство", "Другое"];
 
-function makeId() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `task-${Date.now()}`;
-}
-
 export default function NewBusinessTaskPage() {
   const [step, setStep] = useState<Step>("draft");
   const [description, setDescription] = useState("");
@@ -135,29 +128,27 @@ export default function NewBusinessTaskPage() {
     setCard((current) => ({ ...current, [key]: value }));
   }
 
-  function confirmAndPublish(event: FormEvent<HTMLFormElement>) {
+  async function confirmAndPublish(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setBusy(true);
 
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.tasks);
-      const existing: unknown = saved ? JSON.parse(saved) : [];
-      if (!Array.isArray(existing)) throw new Error("В хранилище задач некорректный формат.");
-
-      const readiness = scoreTask(card);
-      const task: BusinessTask = {
-        ...card,
-        id: makeId(),
-        score: readiness.score,
-        readinessLevel: readiness.readinessLevel,
-        status: "published",
-        confirmedAt: new Date().toISOString(),
-      };
-      localStorage.setItem(STORAGE_KEYS.tasks, JSON.stringify([task, ...existing]));
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(card),
+      });
+      const result = await response.json() as BusinessTask & { error?: string };
+      if (!response.ok) throw new Error(result.error || "Не удалось сохранить задачу.");
+      const task = result;
+      notifyServerCollectionChanged();
       setPublishedTask(task);
       setStep("published");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не удалось сохранить задачу.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -215,7 +206,7 @@ export default function NewBusinessTaskPage() {
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Например: сотрудники тратят много времени на ручную обработку заявок…"
             />
-            <small>От 10 символов. Не указывайте персональные или конфиденциальные данные.</small>
+            <small>От 10 символов. При наличии ключа описание отправляется в OpenAI для подготовки вопросов. Не вводите персональные или конфиденциальные сведения; для демо используйте вымышленные данные.</small>
           </label>
           <label className="task-field task-field-short">
             <span>Тема или отрасль</span>
@@ -322,7 +313,7 @@ export default function NewBusinessTaskPage() {
           </div>
           <div className="task-actions">
             <button className="button button-secondary" type="button" onClick={() => setStep("questions")}>Назад к ответам</button>
-            <button className="button" type="submit">Подтвердить и опубликовать</button>
+            <button className="button" type="submit" disabled={busy}>{busy ? "Сохраняем…" : "Подтвердить и опубликовать"}</button>
           </div>
         </form>
       )}
@@ -332,7 +323,7 @@ export default function NewBusinessTaskPage() {
           <span className="task-success-mark" aria-hidden="true">✓</span>
           <h2>Задача опубликована</h2>
           <p><strong>{publishedTask.title}</strong> добавлена в общий каталог. Вы сможете сравнить отклики и принять решение вручную.</p>
-          <p className="muted">Рейтинг готовности: {publishedTask.score}/100. Карточка сохранена в этом браузере.</p>
+          <p className="muted">Рейтинг готовности: {publishedTask.score}/100. Карточка сохранена в общем хранилище и видна на других устройствах с доступом к этому приложению.</p>
           <div className="task-actions">
             <Link className="button" href="/catalog">Перейти в каталог</Link>
             <Link className="button button-secondary" href={`/business/tasks/${publishedTask.id}/responses`}>Посмотреть отклики</Link>

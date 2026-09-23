@@ -26,7 +26,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <nav aria-label="Основная навигация">
             {navigation.map((item) => <Link key={item.href} href={item.href}>{item.label}</Link>)}
           </nav>
-          <Link className="auth-link" href="/auth">Войти</Link>
         </header>
         <main className="container">{children}</main>
         <footer className="site-footer">
