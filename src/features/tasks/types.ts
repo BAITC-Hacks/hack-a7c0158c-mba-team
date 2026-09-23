@@ -36,6 +36,7 @@ export type Proposal = {
   id: string;
   taskId: string;
   teamId: string;
+  teamName: string;
   idea: string;
   plan: string;
   timeline: string;
